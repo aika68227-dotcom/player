@@ -1,171 +1,149 @@
-
 <!DOCTYPE html>
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <!-- TAMBAHAN PENTING: viewport-fit=cover agar layar tembus poni -->
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Fluid Player - Notch Support</title>
-    
-    <!-- Fluid Player CDN -->
-    <script src="https://cdn.fluidplayer.com/v3/current/fluidplayer.min.js"></script>
-
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generator Player Multi-Resolusi</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
-        /* Reset Body agar benar-benar full screen */
-        body, html { 
-            margin: 0; 
-            padding: 0; 
-            width: 100%; 
-            height: 100%; 
-            background-color: #000; 
-            overflow: hidden; 
-            font-family: 'Segoe UI', sans-serif;
-        }
-        
-        #video-container {
-            width: 100vw; 
-            height: 100vh; 
-            position: relative;
-            background: #000;
-        }
-        
-        video { 
-            width: 100%; 
-            height: 100%; 
-            /* Opsional: 'cover' jika ingin video di-zoom memenuhi layar (terpotong dikit), 
-               'contain' jika ingin full video tampil semua (mungkin ada bar hitam) */
-            object-fit: contain; 
-        }
-
-        /* --- TEMA SKY BLUE --- */
-        :root { --primary-color: #87CEEB; }
-
-        .fluid_video_wrapper .fluid_button svg { fill: var(--primary-color) !important; }
-        .fluid_video_wrapper .fluid_controls_progress_played { background-color: var(--primary-color) !important; }
-        .fluid_video_wrapper .fluid_initial_play_button_inner { background-color: var(--primary-color) !important; }
-        
-        /* Navbar Judul - Diatur agar tidak tertutup Poni */
-        .top-bar {
-            position: absolute; 
-            top: 0; left: 0; width: 100%;
-            
-            /* PENTING: Padding tambahan agar teks tidak tertutup poni HP */
-            padding-top: max(15px, env(safe-area-inset-top)); 
-            padding-left: max(20px, env(safe-area-inset-left));
-            padding-right: max(20px, env(safe-area-inset-right));
-            padding-bottom: 15px;
-
-            background: linear-gradient(to bottom, rgba(0,0,0,0.9) 0%, transparent 100%);
-            color: var(--primary-color);
-            font-weight: bold; 
-            letter-spacing: 1px;
-            font-size: 14px;
-            z-index: 100; 
-            pointer-events: none; /* Agar klik tembus ke video */
-            display: flex; 
-            align-items: center;
-            transition: opacity 0.5s;
-        }
+        body { background-color: #f4f7f6; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        .container { max-width: 700px; margin-top: 50px; background: white; padding: 30px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        .btn-primary { background-color: #007bff; border: none; }
+        .form-label { font-weight: 500; }
+        .resolution-entry .form-control { border-radius: 0; }
+        .resolution-entry .btn { border-radius: 0 0.375rem 0.375rem 0; }
+        .resolution-entry:first-child .form-control:first-child { border-radius: 0.375rem 0 0 0.375rem; }
+        .resolution-entry:first-child .form-control:last-child { border-radius: 0 0.375rem 0.375rem 0; }
     </style>
 </head>
 <body>
 
-<div id="video-container">
-    <div class="top-bar" id="title-display">LOADING...</div>
-    <video id="my-video" playsinline> 
-        <source id="vid-src" src="" type="video/mp4"/>
-    </video>
+<div class="container">
+    <h3 class="mb-4 text-center">Video Player Generator</h3>
+    
+    <!-- Bagian input resolusi yang telah disempurnakan -->
+    <div class="mb-1">
+        <label class="form-label">Resolusi Video</label>
+        <div id="resolutions-container">
+            <!-- Input pertama (default), tidak bisa dihapus -->
+            <div class="resolution-entry input-group mb-2">
+                <input type="text" class="form-control resolution-label" placeholder="Label (e.g., 720p)" required>
+                <input type="url" class="form-control resolution-url w-50" placeholder="https://.../video-720p.mp4" required>
+            </div>
+        </div>
+        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="addResolutionField()">+ Tambah Resolusi</button>
+    </div>
+
+    <div class="row mt-3">
+        <div class="col-md-12 mb-3">
+            <label class="form-label">Link Subtitle (.vtt)</label>
+            <input type="url" id="subtitle" class="form-control" placeholder="https://domain.com/sub.vtt">
+        </div>
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">Link Iklan VAST (Opsional)</label>
+        <input type="url" id="ad_link" class="form-control" placeholder="https://ad-provider.com/vast.xml">
+        <small class="text-muted">Iklan akan muncul sebagai Pre-Roll.</small>
+    </div>
+
+    <button type="button" onclick="generateLink()" class="btn btn-primary w-100 p-2">Generate Player Link</button>
+
+    <div id="result" class="mt-4" style="display:none;">
+        <hr>
+        <label class="form-label">Link Player:</label>
+        <div class="input-group mb-3">
+            <input type="text" id="final_link" class="form-control" readonly>
+            <button class="btn btn-outline-primary" onclick="copyToClipboard('final_link')">Copy</button>
+        </div>
+
+        <label class="form-label">Iframe Embed:</label>
+        <div class="input-group">
+            <textarea id="iframe_code" class="form-control" rows="3" readonly></textarea>
+            <button class="btn btn-outline-primary" onclick="copyToClipboard('iframe_code')">Copy</button>
+        </div>
+    </div>
 </div>
 
 <script>
-    document.addEventListener("DOMContentLoaded", function() {
-        const urlParams = new URLSearchParams(window.location.search);
-        const encodedId = urlParams.get('id');
+    /**
+     * Menambahkan baris input baru untuk resolusi video.
+     */
+    function addResolutionField() {
+        const container = document.getElementById('resolutions-container');
+        const newEntry = document.createElement('div');
+        newEntry.className = 'resolution-entry input-group mb-2';
+        newEntry.innerHTML = `
+            <input type="text" class="form-control resolution-label" placeholder="Label (e.g., 480p)">
+            <input type="url" class="form-control resolution-url w-50" placeholder="https://.../video-480p.mp4">
+            <button class="btn btn-outline-danger" type="button" onclick="this.parentElement.remove()">Hapus</button>
+        `;
+        container.appendChild(newEntry);
+    }
 
-        if (encodedId) {
-            try {
-                const data = JSON.parse(atob(encodedId));
-                
-                // 1. Set Video & Judul
-                document.getElementById('vid-src').src = data.v;
-                document.getElementById('title-display').innerText = "WATCHING: " + (data.r || "VIDEO");
+    /**
+     * Mengumpulkan semua data, termasuk multi-resolusi, dan membuat link.
+     */
+    function generateLink() {
+        const resolutionEntries = document.querySelectorAll('.resolution-entry');
+        const sources = [];
 
-                // 2. Set Subtitle
-                if(data.s) {
-                    const videoEl = document.getElementById('my-video');
-                    const track = document.createElement('track');
-                    track.kind = 'subtitles';
-                    track.label = 'Indonesia';
-                    track.srclang = 'id';
-                    track.src = data.s;
-                    track.default = true;
-                    videoEl.appendChild(track);
-                }
-
-                // 3. Konfigurasi Iklan (Optimasi Onclicka/Adsterra)
-                let vastSettings = {};
-                if (data.a) {
-                    vastSettings = {
-                        adList: [{
-                            roll: 'preRoll',
-                            vastTag: data.a,
-                            timer: 5
-                        }],
-                        skipButtonCaption: 'Lewati Iklan ([seconds])',
-                        skipButtonClick: true,
-                        adText: 'Sponsor',
-                        adCTAText: 'Buka',
-                        
-                        // SETTING AGAR IKLAN LANCAR
-                        allowVPAID: true,
-                        vastTimeout: 10000, // Tunggu 10 detik
-                        maxAllowedVastTagRedirects: 8,
-                        vastAdvanced: {
-                            videoExtensions: ['mp4', 'webm', 'ogg', 'm3u8'],
-                            noVastAfterCa: false
-                        }
-                    };
-                }
-
-                // 4. Init Fluid Player
-                var player = fluidPlayer('my-video', {
-                    layoutControls: {
-                        primaryColor: "#87CEEB",
-                        fillToContainer: true, // Wajib true agar full screen
-                        posterImage: '', 
-                        autoPlay: false, // False agar browser tidak blokir iklan
-                        playButtonShowing: true,
-                        playPauseAnimation: true,
-                        allowTheatre: false,
-                        keyboardControl: true,
-                        layout: 'default',
-                        controlBar: {
-                            autoHide: true,
-                            autoHideTimeout: 3,
-                            animated: true
-                        }
-                    },
-                    vastOptions: vastSettings
+        resolutionEntries.forEach(entry => {
+            const label = entry.querySelector('.resolution-label').value.trim();
+            const url = entry.querySelector('.resolution-url').value.trim();
+            // Hanya tambahkan jika kedua field diisi
+            if (label && url) {
+                sources.push({
+                    file: url,  // 'file' adalah properti yang umum digunakan oleh player
+                    label: label
                 });
-                
-                // Logika Judul (Hilang saat Play, Muncul saat Pause)
-                player.on('play', function() {
-                    document.getElementById('title-display').style.opacity = '0'; 
-                });
-                player.on('pause', function() {
-                     document.getElementById('title-display').style.opacity = '1';
-                });
-                player.on('ended', function() {
-                     document.getElementById('title-display').style.opacity = '1';
-                });
-
-            } catch (e) {
-                console.error("Error:", e);
             }
-        }
-    });
-</script>
+        });
 
-<script defer src="https://static.cloudflareinsights.com/beacon.min.js/vcd15cbe7772f49c399c6a5babf22c1241717689176015" integrity="sha512-ZpsOmlRQV6y907TI0dKBHq9Md29nnaEIPlkf84rnaERnq6zvWvPUqr2ft8M1aS28oN72PdrCzSjY4U6VaAw1EQ==" data-cf-beacon='{"version":"2024.11.0","token":"1f1bc143981c4a78865eda7a5b23b9c8","r":1,"server_timing":{"name":{"cfCacheStatus":true,"cfEdge":true,"cfExtPri":true,"cfL4":true,"cfOrigin":true,"cfSpeedBrain":true},"location_startswith":null}}' crossorigin="anonymous"></script>
+        if (sources.length === 0) {
+            alert("Harap masukkan setidaknya satu link video dan label resolusi!");
+            return;
+        }
+
+        const sub = document.getElementById('subtitle').value;
+        const ad = document.getElementById('ad_link').value;
+
+        // Struktur data baru untuk mendukung multi-resolusi
+        const data = {
+            sources: sources,
+            s: sub,
+            a: ad
+        };
+        
+        // Encode ke Base64 (proses ini tetap sama)
+        const encodedData = btoa(JSON.stringify(data));
+        
+        const currentPath = window.location.pathname.replace(/index\.html$/, '');
+        const playerUrl = window.location.origin + currentPath + 'player.html?id=' + encodedData;
+        
+        const iframe = `<iframe src="${playerUrl}" width="640" height="360" frameborder="0" allowfullscreen allow="autoplay"></iframe>`;
+
+        document.getElementById('final_link').value = playerUrl;
+        document.getElementById('iframe_code').value = iframe;
+        document.getElementById('result').style.display = 'block';
+    }
+
+    /**
+     * Menyalin teks ke clipboard.
+     */
+    function copyToClipboard(id) {
+        const copyText = document.getElementById(id);
+        copyText.select();
+        copyText.setSelectionRange(0, 99999); // Untuk mobile
+        try {
+            navigator.clipboard.writeText(copyText.value);
+            alert("Berhasil disalin!");
+        } catch (err) {
+            // Fallback untuk browser lama
+            document.execCommand("copy");
+            alert("Berhasil disalin!");
+        }
+    }
+</script>
 </body>
 </html>
