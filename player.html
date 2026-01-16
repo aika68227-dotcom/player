@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Fluid Player - Notch Support</title>
+    
+    <!-- Fluid Player CDN -->
+    <script src="https://cdn.fluidplayer.com/v3/current/fluidplayer.min.js"></script>
+
+    <style>
+        /* CSS Anda sudah bagus, tidak ada yang diubah */
+        body, html { 
+            margin: 0; 
+            padding: 0; 
+            width: 100%; 
+            height: 100%; 
+            background-color: #000; 
+            overflow: hidden; 
+            font-family: 'Segoe UI', sans-serif;
+        }
+        
+        #video-container {
+            width: 100vw; 
+            height: 100vh; 
+            position: relative;
+            background: #000;
+        }
+        
+        video { 
+            width: 100%; 
+            height: 100%; 
+            object-fit: contain; 
+        }
+
+        :root { --primary-color: #87CEEB; }
+
+        .fluid_video_wrapper .fluid_button svg { fill: var(--primary-color) !important; }
+        .fluid_video_wrapper .fluid_controls_progress_played { background-color: var(--primary-color) !important; }
+        .fluid_video_wrapper .fluid_initial_play_button_inner { background-color: var(--primary-color) !important; }
+        
+        .top-bar {
+            position: absolute; 
+            top: 0; left: 0; width: 100%;
+            padding-top: max(15px, env(safe-area-inset-top)); 
+            padding-left: max(20px, env(safe-area-inset-left));
+            padding-right: max(20px, env(safe-area-inset-right));
+            padding-bottom: 15px;
+            background: linear-gradient(to bottom, rgba(0,0,0,0.9) 0%, transparent 100%);
+            color: var(--primary-color);
+            font-weight: bold; 
+            letter-spacing: 1px;
+            font-size: 14px;
+            z-index: 100; 
+            pointer-events: none;
+            display: flex; 
+            align-items: center;
+            transition: opacity 0.5s;
+        }
+    </style>
+</head>
+<body>
+
+<div id="video-container">
+    <div class="top-bar" id="title-display">LOADING...</div>
+    <!-- PENTING: Tag <source> dihapus dari sini karena akan di-handle oleh JavaScript -->
+    <video id="my-video" playsinline></video>
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const encodedId = urlParams.get('id');
+
+        if (encodedId) {
+            try {
+                const data = JSON.parse(atob(encodedId));
+                
+                // =================================================================
+                // PERUBAHAN UTAMA UNTUK MENDUKUNG MULTI-RESOLUSI
+                // =================================================================
+
+                // 1. Siapkan daftar kualitas untuk Fluid Player
+                let qualityLevels = [];
+                if (data.sources && data.sources.length > 0) {
+                    qualityLevels = data.sources.map(source => ({
+                        // Fluid player butuh 'label' dan 'url'
+                        label: source.label,
+                        url: source.file 
+                    }));
+                } else {
+                    document.getElementById('title-display').innerText = "ERROR: Tidak ada sumber video yang ditemukan.";
+                    return; // Hentikan jika tidak ada video
+                }
+                
+                // 2. Set Judul dari resolusi pertama
+                const videoTitle = data.sources[0].label || "VIDEO";
+                document.getElementById('title-display').innerText = "WATCHING: " + videoTitle;
+                
+                // =================================================================
+                // Sisa kode Anda hampir sama
+                // =================================================================
+
+                // 3. Set Subtitle (logika ini tetap sama)
+                if(data.s) {
+                    const videoEl = document.getElementById('my-video');
+                    const track = document.createElement('track');
+                    track.kind = 'subtitles';
+                    track.label = 'Indonesia';
+                    track.srclang = 'id';
+                    track.src = data.s;
+                    track.default = true;
+                    videoEl.appendChild(track);
+                }
+
+                // 4. Konfigurasi Iklan (logika ini tetap sama)
+                let vastSettings = {};
+                if (data.a) {
+                    vastSettings = {
+                        adList: [{
+                            roll: 'preRoll',
+                            vastTag: data.a,
+                            timer: 5
+                        }],
+                        skipButtonCaption: 'Lewati Iklan ([seconds])',
+                        skipButtonClick: true,
+                        adText: 'Sponsor',
+                        adCTAText: 'Buka',
+                        allowVPAID: true,
+                        vastTimeout: 10000,
+                        maxAllowedVastTagRedirects: 8,
+                        vastAdvanced: {
+                            videoExtensions: ['mp4', 'webm', 'ogg', 'm3u8'],
+                            noVastAfterCa: false
+                        }
+                    };
+                }
+
+                // 5. Init Fluid Player dengan konfigurasi baru
+                var player = fluidPlayer('my-video', {
+                    layoutControls: {
+                        primaryColor: "#87CEEB",
+                        fillToContainer: true,
+                        posterImage: '', 
+                        autoPlay: false,
+                        playButtonShowing: true,
+                        playPauseAnimation: true,
+                        allowTheatre: false,
+                        keyboardControl: true,
+                        layout: 'default',
+                        // TAMBAHAN: Masukkan daftar kualitas ke dalam player
+                        qualityLevels: qualityLevels,
+                        controlBar: {
+                            autoHide: true,
+                            autoHideTimeout: 3,
+                            animated: true
+                        }
+                    },
+                    vastOptions: vastSettings
+                });
+                
+                // Logika Judul (tidak ada yang diubah)
+                player.on('play', function() {
+                    document.getElementById('title-display').style.opacity = '0'; 
+                });
+                player.on('pause', function() {
+                     document.getElementById('title-display').style.opacity = '1';
+                });
+                player.on('ended', function() {
+                     document.getElementById('title-display').style.opacity = '1';
+                });
+
+            } catch (e) {
+                console.error("Error saat memuat data player:", e);
+                document.getElementById('title-display').innerText = "ERROR: Data tidak valid.";
+            }
+        }
+    });
+</script>
+
+</body>
+</html>
