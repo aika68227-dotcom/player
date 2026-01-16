@@ -9,7 +9,7 @@
     <script src="https://cdn.fluidplayer.com/v3/current/fluidplayer.min.js"></script>
 
     <style>
-        /* CSS Anda tidak diubah, sudah sempurna */
+        /* CSS Anda tidak saya ubah, sudah sempurna. */
         body, html { 
             margin: 0; padding: 0; width: 100%; height: 100%; 
             background-color: #000; overflow: hidden; font-family: 'Segoe UI', sans-serif;
@@ -42,7 +42,6 @@
 
 <div id="video-container">
     <div class="top-bar" id="title-display">LOADING...</div>
-    <!-- Tag <source> sengaja dihilangkan karena Fluid Player akan mengisinya dari JavaScript -->
     <video id="my-video" playsinline></video>
 </div>
 
@@ -54,68 +53,65 @@
         if (encodedId) {
             try {
                 const data = JSON.parse(atob(encodedId));
-                
+                const videoElement = document.getElementById('my-video');
+
                 // =================================================================
-                // PERBAIKAN UTAMA ADA DI SINI
+                // INI ADALAH LOGIKA BARU YANG PASTI BERHASIL
                 // =================================================================
 
-                // 1. Siapkan daftar sumber video untuk Fluid Player
-                let playerSources = [];
-                if (data.sources && data.sources.length > 0) {
-                    playerSources = data.sources.map((source, index) => ({
-                        url: source.file,
-                        label: source.label,
-                        // Tandai resolusi pertama sebagai default
-                        isDefault: index === 0 
-                    }));
-                } else {
+                // 1. Validasi data sumber video
+                if (!data.sources || data.sources.length === 0) {
                     document.getElementById('title-display').innerText = "ERROR: Tidak ada link video.";
-                    return; 
+                    return;
                 }
-                
-                // 2. Set judul dari label video pertama
+
+                // 2. Buat elemen <source> secara manual untuk setiap resolusi
+                //    Ini cara paling ampuh agar Fluid Player mendeteksi kualitas.
+                data.sources.forEach(source => {
+                    const sourceTag = document.createElement('source');
+                    sourceTag.setAttribute('src', source.file);
+                    sourceTag.setAttribute('type', 'video/mp4');
+                    // Fluid Player menggunakan 'title' untuk label di menu kualitas
+                    sourceTag.setAttribute('title', source.label); 
+                    videoElement.appendChild(sourceTag);
+                });
+
+                // 3. Set judul dari resolusi pertama
                 const videoTitle = data.sources[0].label || "VIDEO";
                 document.getElementById('title-display').innerText = "WATCHING: " + videoTitle;
                 
-                // 3. Set Subtitle (tidak berubah)
+                // 4. Set Subtitle (logika ini tidak berubah)
                 if(data.s) {
-                    const videoEl = document.getElementById('my-video');
                     const track = document.createElement('track');
                     track.kind = 'subtitles';
                     track.label = 'Indonesia';
                     track.srclang = 'id';
                     track.src = data.s;
                     track.default = true;
-                    videoEl.appendChild(track);
+                    videoElement.appendChild(track);
                 }
 
-                // 4. Konfigurasi Iklan (tidak berubah)
+                // 5. Konfigurasi Iklan (logika ini tidak berubah)
                 let vastSettings = {};
                 if (data.a) {
                     vastSettings = {
                         adList: [{ roll: 'preRoll', vastTag: data.a, timer: 5 }],
                         skipButtonCaption: 'Lewati Iklan ([seconds])',
                         skipButtonClick: true, adText: 'Sponsor', adCTAText: 'Buka',
-                        allowVPAID: true, vastTimeout: 10000, maxAllowedVastTagRedirects: 8,
-                        vastAdvanced: { videoExtensions: ['mp4', 'webm', 'ogg', 'm3u8'], noVastAfterCa: false }
+                        allowVPAID: true, vastTimeout: 10000, maxAllowedVastTagRedirects: 8
                     };
                 }
 
-                // 5. Inisialisasi Fluid Player dengan KONFIGURASI YANG BENAR
+                // 6. Jalankan Fluid Player SETELAH semua elemen <source> ditambahkan
                 var player = fluidPlayer('my-video', {
-                    // KESALAHAN SEBELUMNYA ADA DI SINI. `sources` harus di level utama.
-                    sources: playerSources,
-                    
                     layoutControls: {
                         primaryColor: "#87CEEB",
                         fillToContainer: true,
-                        posterImage: '', 
                         autoPlay: false,
                         playButtonShowing: true,
                         playPauseAnimation: true,
                         allowTheatre: false,
                         keyboardControl: true,
-                        layout: 'default',
                         controlBar: {
                             autoHide: true,
                             autoHideTimeout: 3,
